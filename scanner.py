@@ -6,10 +6,10 @@ conf.verb = 0  # disables scapy default verbose mode
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # disables 'No route found for IPv6 destination' warning
 
 t_wait = 1.0  # timeout for the answer to each packet
-openPorts = []  # holds the open ports to show as a summary
-closedPorts = []  # holds the closed ports to show as a summary
-filteredPorts = []  # holds the filtered ports to show as a summary
-opfilPorts = []  # holds the open/filtered ports to show as a summary
+openPorts = [] 
+closedPorts = [] 
+filteredPorts = []
+opfilPorts = [] 
 
 #############################################################################
 # ICMP Codes (Type 3) Used to determine filtering:                          #
@@ -50,31 +50,6 @@ def get_service_banner(target, port):
     except (socket.error, OSError):
         print(f"Port {port} - Open || Service: Unknown || Banner: Not Available")
 
-    
-# def syn_scan(tgt, bP, eP): # definiçao de funçao básica q recebe tres parametros
-#     for port in range(bP, eP + 1):
-    
-#         answer = sr1(IP(dst=tgt) / TCP(dport=port, flags="S"), timeout=t_wait)
-#         if str(type(answer)) == "<class 'NoneType'>":
-#             filteredPorts.append(int(port))
-#             print("Port %d - Filtered" % port)
-
-#         elif answer.haslayer(TCP):
-#             if answer.getlayer(TCP).flags == 0x12:
-#                 send_rst = sr(IP(dst=tgt) / TCP(dport=port, flags="R"), timeout=t_wait)
-#                 openPorts.append(int(port))
-#                 get_service_banner(tgt, port)
-#                 # print(f"Port {port} - Open || Service: {get_service_from_packet(answer)}")
-#             elif answer.getlayer(TCP).flags == 0x14:
-#                 closedPorts.append(int(port))
-#                 # print("Port %d - Closed" % port)
-#             elif answer.haslayer(ICMP):
-#                 if int(answer.getlayer(ICMP).type) == 3 and int(answer.getlayer(ICMP).code) in [1, 2, 3, 9, 10, 13]:
-#                     filteredPorts.append(int(port))
-#                     print("Port %d - Filtered" % port)
-                    
-#     summary()
-
 def syn_scan(tgt, bP, eP):
     print("Scanning ports...")
     for port in range(bP, eP + 1):
@@ -87,7 +62,7 @@ def syn_scan(tgt, bP, eP):
         #----loading----#
 
         # envio de pacote usando protocolo
-        answer = sr1(IP(dst=tgt) / TCP(dport=port, flags="S"), timeout=t_wait)
+        answer = sr1(IP(dst=tgt) / TCP(dport=port, flags="S"), timeout=t_wait) # explicação sobre as camadas
 
         if str(type(answer)) == "<class 'NoneType'>":
             filteredPorts.append(int(port))
@@ -118,10 +93,11 @@ def xmas_scan(tgt, bP, eP):
         print("\rChecking port {}: {}".format(port, animation[idx]), end="")
         sys.stdout.flush()
 
-        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="FPU"), timeout=t_wait)
+        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="FPU"), timeout=t_wait) # explicação 
         if str(type(answer)) == "<class 'NoneType'>":
             opfilPorts.append(int(port))
-            get_service_banner(tgt, port)
+            print("Port %d - Open/Filtered" % port)
+
         elif answer.haslayer(TCP):
             if answer.getlayer(TCP).flags == 0x14:
                 closedPorts.append(int(port))
@@ -147,10 +123,11 @@ def fin_scan(tgt, bP, eP):
         sys.stdout.flush()
         #----loading----#
 
-        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="F"), timeout=t_wait)
+        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="F"), timeout=t_wait) #explicação/ pq espera um RST se ele manda um fin
         if str(type(answer)) == "<class 'NoneType'>":
             opfilPorts.append(int(port))
-            get_service_banner(tgt, port)
+            print("Port %d - Open/Filtered" % port)
+
         elif answer.haslayer(TCP):
             if answer.getlayer(TCP).flags == 0x14:
                 closedPorts.append(int(port))
@@ -174,10 +151,10 @@ def null_scan(tgt, bP, eP):
         sys.stdout.flush()
         #----loading----#
 
-        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags=""), timeout=t_wait)
+        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags=""), timeout=t_wait) # explicação/ quais possíveis respostas ao enviar um pacote TCP sem flag
         if str(type(answer)) == "<class 'NoneType'>":
             opfilPorts.append(int(port))
-            get_service_banner(tgt, port)
+            print("Port %d - Open/Filtered" % port)
             
         elif answer.haslayer(TCP):
             if answer.getlayer(TCP).flags == 0x14:
@@ -202,7 +179,7 @@ def ack_scan(tgt, bP, eP):
         sys.stdout.flush()
         #----loading----#
 
-        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="A"), timeout=t_wait)
+        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="A"), timeout=t_wait) # explicação / o que acontece se enviar um syn sem resposta
         if str(type(answer)) == "<class 'NoneType'>":
             filteredPorts.append(int(port))
             print("Port %d - Filtered by Stateful Firewall" % port)
