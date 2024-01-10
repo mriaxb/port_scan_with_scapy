@@ -110,8 +110,9 @@ def syn_scan(tgt, bP, eP):
     summary()
 
 def xmas_scan(tgt, bP, eP):
-    print("Scanning ports:")
+    print("Scanning ports...")
     for port in range(bP, eP + 1):
+
         animation = "|/-\\"
         idx = port % len(animation)
         print("\rChecking port {}: {}".format(port, animation[idx]), end="")
@@ -120,7 +121,6 @@ def xmas_scan(tgt, bP, eP):
         answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="FPU"), timeout=t_wait)
         if str(type(answer)) == "<class 'NoneType'>":
             opfilPorts.append(int(port))
-            print("Port %d - Open/Filtered" % port)
             get_service_banner(tgt, port)
         elif answer.haslayer(TCP):
             if answer.getlayer(TCP).flags == 0x14:
@@ -136,11 +136,21 @@ def xmas_scan(tgt, bP, eP):
 
 
 def fin_scan(tgt, bP, eP):
+    print("Scanning ports...")
+
     for port in range(bP, eP + 1):
+
+        #----loading----#
+        animation = "|/-\\"
+        idx = port % len(animation)
+        print("\rChecking port {}: {}".format(port, animation[idx]), end="")
+        sys.stdout.flush()
+        #----loading----#
+
         answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="F"), timeout=t_wait)
         if str(type(answer)) == "<class 'NoneType'>":
             opfilPorts.append(int(port))
-            print("Port %d - Open/Filtered" % port)
+            get_service_banner(tgt, port)
         elif answer.haslayer(TCP):
             if answer.getlayer(TCP).flags == 0x14:
                 closedPorts.append(int(port))
@@ -153,11 +163,22 @@ def fin_scan(tgt, bP, eP):
 
 
 def null_scan(tgt, bP, eP):
+    print("Scanning ports...")
+
     for port in range(bP, eP + 1):
+
+        #----loading----#
+        animation = "|/-\\"
+        idx = port % len(animation)
+        print("\rChecking port {}: {}".format(port, animation[idx]), end="")
+        sys.stdout.flush()
+        #----loading----#
+
         answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags=""), timeout=t_wait)
         if str(type(answer)) == "<class 'NoneType'>":
             opfilPorts.append(int(port))
-            print("Port %d - Open/Filtered" % port)
+            get_service_banner(tgt, port)
+            
         elif answer.haslayer(TCP):
             if answer.getlayer(TCP).flags == 0x14:
                 closedPorts.append(int(port))
@@ -170,13 +191,23 @@ def null_scan(tgt, bP, eP):
 
 
 def ack_scan(tgt, bP, eP):
+    print("Scanning ports...")
+
     for port in range(bP, eP + 1):
+
+        #----loading----#
+        animation = "|/-\\"
+        idx = port % len(animation)
+        print("\rChecking port {}: {}".format(port, animation[idx]), end="")
+        sys.stdout.flush()
+        #----loading----#
+
         answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="A"), timeout=t_wait)
         if str(type(answer)) == "<class 'NoneType'>":
             filteredPorts.append(int(port))
             print("Port %d - Filtered by Stateful Firewall" % port)
         elif answer.haslayer(TCP):
-            if answer.getlayer(TCP).flags == 0x4:
+            if answer.getlayer(TCP).flags == 0x14:
                 print("Port %d - Unfiltered by Firewall" % port)
             elif answer.haslayer(ICMP):
                 if int(answer.getlayer(ICMP).type) == 3 and int(answer.getlayer(ICMP).code) in [1, 2, 3, 9, 10, 13]:
