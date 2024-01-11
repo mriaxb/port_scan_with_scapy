@@ -1,11 +1,13 @@
 import logging
 import socket
+import sys
+import time
 from scapy.all import *
 
 conf.verb = 0  # disables scapy default verbose mode
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # disables 'No route found for IPv6 destination' warning
 
-t_wait = 1.0  # timeout for the answer to each packet
+t_wait = 4.0  # timeout for the answer to each packet
 openPorts = [] 
 closedPorts = [] 
 filteredPorts = []
@@ -51,6 +53,7 @@ def get_service_banner(target, port):
         print(f"Port {port} - Open || Service: Unknown || Banner: Not Available")
 
 def syn_scan(tgt, bP, eP):
+    print_ascii_art()
     print("Scanning ports...")
     for port in range(bP, eP + 1):
 
@@ -62,7 +65,7 @@ def syn_scan(tgt, bP, eP):
         #----loading----#
 
         # envio de pacote usando protocolo
-        answer = sr1(IP(dst=tgt) / TCP(dport=port, flags="S"), timeout=t_wait) # explicação sobre as camadas
+        answer = sr1(IP(dst=tgt) / TCP(dport=port, flags="S"), timeout=t_wait) # explicação 
 
         if str(type(answer)) == "<class 'NoneType'>":
             filteredPorts.append(int(port))
@@ -97,7 +100,6 @@ def xmas_scan(tgt, bP, eP):
         if str(type(answer)) == "<class 'NoneType'>":
             opfilPorts.append(int(port))
             print("Port %d - Open/Filtered" % port)
-
         elif answer.haslayer(TCP):
             if answer.getlayer(TCP).flags == 0x14:
                 closedPorts.append(int(port))
@@ -216,3 +218,33 @@ def scan(tgt, bP, eP, mode):
                  }
 
     scanModes[mode](tgt, bP, eP)
+
+
+def print_ascii_art():
+    ascii_art = """
+        (       )  (             (                   )  
+        )\ ) ( /(  )\ )  *   )   )\ )  (    (     ( /(  
+        (()/( )\())(()/(` )  /(  (()/(  )\   )\    )\()) 
+        /(_)|(_)\  /(_))( )(_))  /(_)|((_|(((_)( ((_)\  
+        (_))   ((_)(_)) (_(_())  (_)) )\___)\ _ )\ _((_) 
+        | _ \ / _ \| _ \|_   _|  / __((/ __(_)_\(_) \| | 
+        |  _/| (_) |   /  | |    \__ \| (__ / _ \ | .` | 
+        |_|   \___/|_|_\  |_|    |___/ \___/_/ \_\|_|\_| 
+                                
+    """
+    red_text = "\033[91m"
+
+    yellow_text = "\033[93m"
+    reset_color = "\033[0m"
+
+    for char in ascii_art:
+        if char in ['_','|', '9']:
+            # Aplica a cor vermelha para '(' e '9'
+            print(red_text + char, end='', flush=True)
+        else:
+            # Aplica a cor amarela para outros caracteres
+            print(yellow_text + char, end='', flush=True)
+        time.sleep(0.004)  # Ajuste o intervalo de tempo conforme necessário
+
+    # Reimprime o caractere de redefinição de cor para garantir que a formatação seja restaurada
+    print(reset_color)
