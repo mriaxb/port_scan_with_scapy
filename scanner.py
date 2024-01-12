@@ -4,38 +4,26 @@ import sys
 import time
 from scapy.all import *
 
-conf.verb = 0  # disables scapy default verbose mode
-logging.getLogger("scapy.runtime").setLevel(logging.ERROR)  # disables 'No route found for IPv6 destination' warning
+conf.verb = 0 
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR) 
 
-t_wait = 4.0  # timeout for the answer to each packet
+t_wait = 4.0  
 openPorts = [] 
 closedPorts = [] 
 filteredPorts = []
 opfilPorts = [] 
 
-#############################################################################
-# ICMP Codes (Type 3) Used to determine filtering:                          #
-# 1  Host Unreachable                                                       #
-# 2  Protocol Unreachable                                                   #
-# 3  Port Unreachable                                                       #
-# 9  Communication with Destination Network is Administratively Prohibited  #
-# 10  Communication with Destination Host is Administratively Prohibited    #
-# 13  Communication Administratively Prohibited                             #
-#############################################################################
 
 def banner_grabber(target, port):
     try:
-        # Cria um socket TCP
+
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(8)
 
-        # Conecta ao host na porta especificada
         s.connect((target, port))
 
-        # Recebe os primeiros 1024 bytes da resposta como banner
         banner = s.recv(1024)
 
-        # Fecha a conexão
         s.close()
 
         return banner.decode('utf-8')
@@ -57,15 +45,12 @@ def syn_scan(tgt, bP, eP):
     print("Scanning ports...")
     for port in range(bP, eP + 1):
 
-        #----loading----#
         animation = "|/-\\"
         idx = port % len(animation)
         print("\rChecking port {}: {}".format(port, animation[idx]), end="")
         sys.stdout.flush()
-        #----loading----#
-
-        # envio de pacote usando protocolo
-        answer = sr1(IP(dst=tgt) / TCP(dport=port, flags="S"), timeout=t_wait) # explicação 
+ 
+        answer = sr1(IP(dst=tgt) / TCP(dport=port, flags="S"), timeout=t_wait)
 
         if str(type(answer)) == "<class 'NoneType'>":
             filteredPorts.append(int(port))
@@ -87,77 +72,22 @@ def syn_scan(tgt, bP, eP):
     print("\nScan complete!")
     summary()
 
-def xmas_scan(tgt, bP, eP):
-    print("Scanning ports...")
-    for port in range(bP, eP + 1):
-
-        animation = "|/-\\"
-        idx = port % len(animation)
-        print("\rChecking port {}: {}".format(port, animation[idx]), end="")
-        sys.stdout.flush()
-
-        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="FPU"), timeout=t_wait) # explicação 
-        if str(type(answer)) == "<class 'NoneType'>":
-            opfilPorts.append(int(port))
-            print("Port %d - Open/Filtered" % port)
-        elif answer.haslayer(TCP):
-            if answer.getlayer(TCP).flags == 0x14:
-                closedPorts.append(int(port))
-                # print("Port %d - Closed" % port)
-            elif answer.haslayer(ICMP):
-                if int(answer.getlayer(ICMP).type) == 3 and int(answer.getlayer(ICMP).code) in [1, 2, 3, 9, 10, 13]:
-                    filteredPorts.append(int(port))
-                    print("Port %d - Filtered" % port)
-                    get_service_banner(tgt, port)
-
-    summary()
-
-
 def fin_scan(tgt, bP, eP):
+    print_ascii_art()
     print("Scanning ports...")
 
     for port in range(bP, eP + 1):
 
-        #----loading----#
         animation = "|/-\\"
         idx = port % len(animation)
         print("\rChecking port {}: {}".format(port, animation[idx]), end="")
         sys.stdout.flush()
-        #----loading----#
 
-        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="F"), timeout=t_wait) #explicação/ pq espera um RST se ele manda um fin
+        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="F"), timeout=t_wait) 
         if str(type(answer)) == "<class 'NoneType'>":
             opfilPorts.append(int(port))
             print("Port %d - Open/Filtered" % port)
 
-        elif answer.haslayer(TCP):
-            if answer.getlayer(TCP).flags == 0x14:
-                closedPorts.append(int(port))
-                # print("Port %d - Closed" % port)
-            elif answer.haslayer(ICMP):
-                if int(answer.getlayer(ICMP).type) == 3 and int(answer.getlayer(ICMP).code) in [1, 2, 3, 9, 10, 13]:
-                    filteredPorts.append(int(port))
-                    print("Port %d - Filtered" % port)
-    summary()
-
-
-def null_scan(tgt, bP, eP):
-    print("Scanning ports...")
-
-    for port in range(bP, eP + 1):
-
-        #----loading----#
-        animation = "|/-\\"
-        idx = port % len(animation)
-        print("\rChecking port {}: {}".format(port, animation[idx]), end="")
-        sys.stdout.flush()
-        #----loading----#
-
-        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags=""), timeout=t_wait) # explicação/ quais possíveis respostas ao enviar um pacote TCP sem flag
-        if str(type(answer)) == "<class 'NoneType'>":
-            opfilPorts.append(int(port))
-            print("Port %d - Open/Filtered" % port)
-            
         elif answer.haslayer(TCP):
             if answer.getlayer(TCP).flags == 0x14:
                 closedPorts.append(int(port))
@@ -170,18 +100,17 @@ def null_scan(tgt, bP, eP):
 
 
 def ack_scan(tgt, bP, eP):
+    print_ascii_art()
     print("Scanning ports...")
 
     for port in range(bP, eP + 1):
 
-        #----loading----#
         animation = "|/-\\"
         idx = port % len(animation)
         print("\rChecking port {}: {}".format(port, animation[idx]), end="")
         sys.stdout.flush()
-        #----loading----#
 
-        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="A"), timeout=t_wait) # explicação / o que acontece se enviar um syn sem resposta
+        answer = sr1(IP(dst=tgt) / TCP(sport=bP, dport=eP, flags="A"), timeout=t_wait) 
         if str(type(answer)) == "<class 'NoneType'>":
             filteredPorts.append(int(port))
             print("Port %d - Filtered by Stateful Firewall" % port)
@@ -211,11 +140,9 @@ def summary():
 
 def scan(tgt, bP, eP, mode):
     scanModes = {1: syn_scan,
-                 2: xmas_scan,
-                 3: fin_scan,
-                 4: null_scan,
-                 5: ack_scan,
-                 }
+                 2: fin_scan,
+                 3: ack_scan,
+                }
 
     scanModes[mode](tgt, bP, eP)
 
@@ -223,7 +150,7 @@ def scan(tgt, bP, eP, mode):
 def print_ascii_art():
     ascii_art = """
         (       )  (             (                   )  
-        )\ ) ( /(  )\ )  *   )   )\ )  (    (     ( /(  
+        )\ ) ( /(  )\ )       )   )\ )  (    (     ( /(  
         (()/( )\())(()/(` )  /(  (()/(  )\   )\    )\()) 
         /(_)|(_)\  /(_))( )(_))  /(_)|((_|(((_)( ((_)\  
         (_))   ((_)(_)) (_(_())  (_)) )\___)\ _ )\ _((_) 
@@ -238,13 +165,10 @@ def print_ascii_art():
     reset_color = "\033[0m"
 
     for char in ascii_art:
-        if char in ['_','|', '9']:
-            # Aplica a cor vermelha para '(' e '9'
+        if char in ['_','|','/', '9']:
             print(red_text + char, end='', flush=True)
         else:
-            # Aplica a cor amarela para outros caracteres
             print(yellow_text + char, end='', flush=True)
-        time.sleep(0.004)  # Ajuste o intervalo de tempo conforme necessário
+        time.sleep(0.004) 
 
-    # Reimprime o caractere de redefinição de cor para garantir que a formatação seja restaurada
     print(reset_color)
